@@ -52,16 +52,35 @@
 
     this.currentUrl = undefined;
 
+    //Create Worker, yay!
+    var myWorker = new Worker("scripts/jsqrcode/qrworker.js");
 
     this.detectQRCode = function(imageData, callback) {
       callback = callback || function() {};
 
-      client.decode(imageData, function(result) {
+      //Send msg to the Worker
+      var message = imageData;
+      myWorker.postMessage(message); // Sending message as an array to the worker
+      console.log('Message posted to worker');
+
+      //Receive msg from Worker
+      myWorker.onmessage = function(e) {
+        var result = e.data;
+        console.log('Message received from worker');
+        console.log(result);
+
         if(result !== undefined) {
           self.currentUrl = result;
         }
         callback(result);
-      });
+      };
+
+      // client.decode(imageData, function(result) {
+      //   if(result !== undefined) {
+      //     self.currentUrl = result;
+      //   }
+      //   callback(result);
+      // });
     };
 
     this.showDialog = function(url) {
@@ -191,6 +210,8 @@
       if(self.onframe) self.onframe();
 
       coordinatesHaveChanged = false;
+
+      window.requestAnimationFrame(captureFrame);
     };
 
     var getCamera = function(videoSource, cb) {
@@ -222,6 +243,7 @@
           var isSetup = setupVariables(e);
           if(isSetup) {
             setInterval(captureFrame.bind(self), 4);
+            window.requestAnimationFrame(captureFrame.bind(self));
           }
           else {
             // This is just to get around the fact that the videoWidth is not
